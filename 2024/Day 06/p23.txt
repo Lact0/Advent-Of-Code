@@ -1,0 +1,91 @@
+def parse_input(filename):
+    with open(filename, 'r') as file:
+        grid = [list(line.strip()) for line in file.readlines()]
+    
+    # Find the starting position of the guard (the '^' character)
+    for y in range(len(grid)):
+        for x in range(len(grid[y])):
+            if grid[y][x] == '^':
+                start_pos = (x, y)
+                grid[y][x] = '.'  # Remove the '^' character, mark it as free space
+                return grid, start_pos
+    return grid, None
+
+
+# Directions: up, right, down, left
+# These correspond to (dx, dy) changes in the grid
+directions = [(-1, 0), (0, 1), (1, 0), (0, -1)]  # up, right, down, left
+
+def turn_right(direction):
+    return (direction + 1) % 4
+
+def simulate_guard(grid, start_pos):
+    visited_positions = set()
+    x, y = start_pos
+    direction = 0  # Starting facing 'up'
+    
+    while True:
+        # Check if the guard has moved outside the grid
+        if not (0 <= x < len(grid[0]) and 0 <= y < len(grid)):
+            break  # The guard leaves the grid, stop
+        
+        # Check if the guard is revisiting the same position (loop)
+        if (x, y) in visited_positions:
+            return visited_positions  # Loop detected, stop
+        
+        visited_positions.add((x, y))
+        
+        # Calculate next potential position
+        dx, dy = directions[direction]
+        
+        # Check if the next position is within bounds and has an obstruction
+        if 0 <= x + dx < len(grid[0]) and 0 <= y + dy < len(grid):
+            if grid[y + dy][x + dx] == '#':  # Obstruction in front
+                direction = turn_right(direction)  # Turn right
+            else:
+                x += dx
+                y += dy  # Move forward
+        else:
+            break  # The guard goes out of bounds, stop
+    
+    return visited_positions
+
+def find_possible_obstruction_positions(grid, visited_positions, start_pos):
+    possible_positions = set()
+    
+    # Try placing an obstruction at every free space
+    for y in range(len(grid)):
+        for x in range(len(grid[y])):
+            if grid[y][x] == '.' and (x, y) not in visited_positions:
+                # Temporarily add the obstruction and simulate the path
+                grid[y][x] = '#'
+                
+                # Simulate the guard's path after adding the obstruction
+                new_visited = simulate_guard(grid, start_pos)
+                
+                # If the number of visited positions is the same, the guard is stuck in a loop
+                if len(new_visited) == len(visited_positions):  
+                    possible_positions.add((x, y))
+                
+                # Remove the obstruction after testing
+                grid[y][x] = '.'
+    
+    return possible_positions
+
+# Main function to solve the problem
+def solve(filename):
+    grid, start_pos = parse_input(filename)
+    
+    # First, simulate the guard's movement to track visited positions
+    visited_positions = simulate_guard(grid, start_pos)
+    
+    # Now, find the possible obstruction positions that could cause a loop
+    possible_positions = find_possible_obstruction_positions(grid, visited_positions, start_pos)  # Pass start_pos
+    
+    # Return the number of such positions
+    return len(possible_positions)
+
+# Example usage:
+filename = "b.txt"
+result = solve(filename)
+print(f"Number of possible obstruction positions: {result}")
