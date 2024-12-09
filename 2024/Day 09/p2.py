@@ -65,3 +65,5 @@ for id, startIndex, length in finalPositions:
     for i in range(length):
         sm += id * (startIndex + i)
 print(sm)
+
+# 12:58 AM
