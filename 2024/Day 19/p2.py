@@ -1,7 +1,3 @@
-# import sys
-# sys.setrecursionlimit(10000000)
-
-
 inp = []
 with open("b.txt", "r") as file:
     for row in file:
