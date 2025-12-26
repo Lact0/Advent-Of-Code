@@ -1,6 +1,9 @@
 
 # This one will be the rref
 # First answer is 48707
+# Too low: 17996
+
+# FInal sol: 18011
 
 inp = []
 with open("b.txt", "r") as file:
@@ -101,11 +104,15 @@ def gen_assignments(vars, var_bounds):
 
 
 
-def find_min_sol(r_mat, var_bounds) -> int:
+def find_min_sol(targets, buttons, r_mat, var_bounds):
     # Identify pivots & free vars
     for i in range(len(r_mat)):
         for j in range(len(r_mat[0])):
-            r_mat[i][j] = round(r_mat[i][j])
+            r_mat[i][j] = round(r_mat[i][j] * 1e10) / 1e10
+    # print("MATRIX:")
+    # for r in r_mat:
+    #     print(r)
+    # print("MATRIX DONE.")
 
     pivots = []
     try:
@@ -116,6 +123,9 @@ def find_min_sol(r_mat, var_bounds) -> int:
         exit()
 
     free_vars = [x for x in range(len(r_mat[0]) - 1) if x not in pivots]
+
+    if len(free_vars) == 0:
+        return round(sum([x[-1] for x in r_mat])), []
 
     # Get vector generator
     def get_vect(ls):
@@ -136,17 +146,27 @@ def find_min_sol(r_mat, var_bounds) -> int:
 
     # For each variable assignment
     min_presses = sum(var_bounds) * 2 # just to be safe, idk what I'm doing
+    min_vect = []
     for assn in gen_assignments(free_vars, var_bounds):
-        vect = get_vect(assn)
-        # print(assn)
-        if any([x < 0 for x in vect]):
+        vect = [round(x) for x in get_vect(assn)]
+        # print(assn, vect)
+        if any([x < -1e-5 for x in vect]):
             continue
-        presses = round(sum(vect))
+        presses = sum(vect)
+
+        if not check_sol(targets, buttons, vect):
+            continue
+            print("ERROR!!!")
+
+        # print("ASSN:", assn, vect, presses)
+        # if presses == sum(var_bounds):
+        #     print("     VECT:", vect)
         if presses < min_presses:
             # print(assn, vect, presses)
             min_presses = presses
+            min_vect = vect
 
-    return min_presses
+    return min_presses, min_vect
 
 
 
@@ -157,17 +177,34 @@ def find_min_sol(r_mat, var_bounds) -> int:
 #     [0, 0, 0, 0, 1,  1, 3]
 # ]
 
-# test_ind = 1
+# test_ind = 126
 # test_mat = rref(matrices[test_ind])
+# for r in test_mat:
+#     print(r)
 
-# bounds = find_var_bounds(machines[test_ind][0], machines[test_ind][1])
+# targets, buttons = machines[test_ind]
+# bounds = find_var_bounds(targets, buttons)
 
+# print("SUM:", sum(targets))
 # # for r in test_mat:
 # #     print(r)
 # print(find_min_sol(test_mat, bounds))
 
 
 # exit()
+
+
+def check_sol(targets, buttons, vect):
+    if len(vect) == 0:
+        return True
+    a = [0] * len(targets)
+    for i in range(len(buttons)):
+        button = buttons[i]
+        for x in button:
+            a[x] += vect[i]
+    if a != targets:
+        return False
+    return True
 
 # Put it all together
 total = 0
@@ -177,9 +214,16 @@ for i in range(len(matrices)):
 
     r_mat = rref(mat)
     bounds = find_var_bounds(targets, buttons)
-    min_sol = find_min_sol(r_mat, bounds)
+    min_sol, vect = find_min_sol(targets, buttons, r_mat, bounds)
     total += min_sol
-    print(min_sol)
+    print(i + 1, min_sol)
+    if not check_sol(targets, buttons, vect):
+        # continue
+        print("ERROR!!!!! vect", vect, "Creates sum", "Rather than target", targets)
+
+    s = sum(targets)
+    if s < min_sol:
+        print("ERROR!!! TARGET SUM:", s, "SOL:", min_sol)
+
 
 print("Total:", total)
-
